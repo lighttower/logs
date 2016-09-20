@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+     http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+     http://www.springframework.org/schema/context
+     http://www.springframework.org/schema/context/spring-context-3.0.xsd
+     http://www.springframework.org/schema/mvc
+     http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd">
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource">
+			<ref bean="dataSource" />
+		</property>
+	</bean>
+	<bean name="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url"
+			value="jdbc:mysql://10.100.66.103:3306/iccs_lighttower?useUnicode=true&amp;characterEncoding=UTF-8&amp;zeroDateTimeBehavior=convertToNull" />
+		<property name="username" value="root" />
+		<property name="password" value="root" />
+		<property name="maxActive" value="20" />
+		<property name="initialSize" value="1" />
+		<property name="maxWait" value="60000" />
+		<property name="maxIdle" value="20" />
+		<property name="minIdle" value="3" />
+		<property name="removeAbandoned" value="true" />
+		<property name="removeAbandonedTimeout" value="180" />
+		<property name="testWhileIdle" value="true" />
+		<property name="testOnBorrow" value="false" />
+		<property name="testOnReturn" value="false" />
+		<property name="validationQuery" value="select 1" />
+		<property name="validationQueryTimeout" value="1" />
+		<property name="timeBetweenEvictionRunsMillis" value="30000" />
+		<property name="numTestsPerEvictionRun" value="20" />
+	</bean>
+	<bean id="dao" class="com.icss.lighttower.logs.dao.LogDao">
+		<constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
+		<constructor-arg name="tableName" value="t_logs" />
+	</bean>
+
+	<bean id="logService" class="com.icss.lighttower.logs.service.LogService">
+		<property name="dao" ref="dao" />
+	</bean>
+	<bean id="configBean" class="com.icss.lighttower.logs.entity.ConfigBean">
+		<!-- java.util.Map -->
+		<property name="requestHeaderParamMapping">
+			<map>
+				<!-- 访问者ip地址 -->
+				<entry key="ipAddress" value="ip" />
+			</map>
+		</property>
+		<property name="sessionParamMapping">
+			<map>
+				<!-- 访问者用户名 -->
+				<entry key="username" value="subject" />
+			</map>
+		</property>
+
+		<property name="fixParamMapping">
+			<map>
+				<!-- 访问时间 -->
+				<entry key="date" value="date" />
+				<!-- 执行结果 -->
+				<entry key="result" value="result" />
+				<!-- 访问的api -->
+				<entry key="url" value="api" />
+			</map>
+		</property>
+	</bean>
+	<mvc:interceptors>
+		<!-- 使用bean定义一个Interceptor，直接定义在mvc:interceptors根下面的Interceptor将拦截所有的请求 
+			<bean class="com.icss.lighttower.logs.interceptor.AllInterceptor"/> -->
+		<mvc:interceptor>
+			<mvc:mapping path="/**" />
+			<!-- 定义在mvc:interceptor下面的表示是对特定的请求才进行拦截的 -->
+			<bean class="com.icss.lighttower.logs.interceptor.LogInterceptor">
+				<property name="logService" ref="logService" />
+				<property name="configBean" ref="configBean" />
+			</bean>
+		</mvc:interceptor>
+	</mvc:interceptors>
+</beans>
